@@ -7,70 +7,80 @@ import numpy as np
 import colors
 
 
+
+def crop_xy(array):    
+    x_min = np.where(array > 0)[1].min()
+    x_min = max(x_min - 20, 0)
+    x_max = np.where(array > 0)[1].max()
+    x_max = min(x_max + 20, array.shape[1] - 1)
+
+    y_min = np.where(array > 0)[0].min()
+    y_min = max(y_min - 20, 0)
+    y_max = np.where(array > 0)[0].max()
+    y_max = min(y_max + 20, array.shape[0] - 1)
+    return x_min, y_min, x_max, y_max
+
+
+def poly_patch(points, lw, color):
+    codes = [Path.MOVETO]
+    codes += [Path.LINETO] * (len(points) - 1)
+    codes += [Path.CLOSEPOLY]
+    path = Path(points + [points[0]], codes)
+    patch = patches.PathPatch(path, facecolor=color, lw=lw)
+    return patch
+
+
+def figure2array(fig):
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+
+    mask = data == 255
+    mask = mask.astype(np.uint8)
+    mask = 1 - np.prod(mask, 2)
+    mask *= 255
+    mask = np.expand_dims(mask, 2)
+
+    array = np.dstack((data, mask)).astype(np.uint8)
+    x_min, y_min, x_max, y_max = crop_xy(mask)
+    return array[y_min:y_max, x_min:x_max, :]
+
+
+# General Class
 class PlaneLayer(object):
 
-    def __init__(self, color, width=10, height=150):
+    def __init__(self, color):
         self.color = color
-        self.width = width
-        self.height = height
+        self.width = 10
+        self.height = 150
 
-    def _patch(self, points, lw):
-        codes = [Path.MOVETO]
-        codes += [Path.LINETO] * (len(points) - 1)
-        codes += [Path.CLOSEPOLY]
-        path = Path(points + [points[0]], codes)
-        patch = patches.PathPatch(path, facecolor=self.color, lw=lw)
-        return patch
+    def draw(self, lw=4, figsize=(10, 10)):  
+        w = 0.25 * self.height + self.width
+        h = 1.6 * self.height
 
-    def draw(self, lw=4, figsize=(10, 10), downsample_factor=1.0):    
-        w = 0.25 * self.height * downsample_factor + self.width
-        y_lim = 1.6 * self.height
-        h =  y_lim * downsample_factor
-        
-        height = downsample_factor * self.height
         figures = [
-            [(0, 0), (self.width, 0), (self.width, height), (0, height)],
-            [(0, height), (self.width, height), (w, h), (w - self.width, h)],
-            [(self.width, 0), (w, h - height), (w, h), (self.width, height)]
+            [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)],
+            [(0, self.height), (self.width, self.height), (w, h), (w - self.width, h)],
+            [(self.width, 0), (w, h - self.height), (w, h), (self.width, self.height)]
         ]
-        patches = [self._patch(f, lw) for f in figures]
+        patches = [poly_patch(f, lw, self.color) for f in figures]
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111)
         for patch in patches:
             ax.add_patch(patch)
-        ax.set_xlim(- w * 0.05, w * 1.05)
-        ax.set_ylim(- y_lim * 0.05, y_lim * 1.05)
-        plt.tight_layout()
+        ax.set_xlim(- 10, w + 10)
+        ax.set_ylim(- 20, 260)
         plt.axes().set_aspect('equal')
         plt.axis('off')
         fig.canvas.draw()
         
-        # To array
-        data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-        data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        data = figure2array(fig)
         plt.close(fig)
-
-        mask = data == 255
-        mask = mask.astype(np.uint8)
-        mask = 1 - np.prod(mask, 2)
-        mask *= 255
-        mask = np.expand_dims(mask, 2)
-        
-        # crop
-        x_min = np.where(mask > 0)[1].min()
-        x_min = max(x_min - 20, 0)
-        x_max = np.where(mask > 0)[1].max()
-        x_max = min(x_max + 20, mask.shape[1] - 1)
-
-        y_min = np.where(mask > 0)[0].min()
-        y_min = max(y_min - 20, 0)
-        y_max = np.where(mask > 0)[0].max()
-        y_max = min(y_max + 20, mask.shape[0] - 1)
-
-        return np.dstack((data, mask)).astype(np.uint8)[y_min:y_max, x_min:x_max, :]
+        return data
 
 
+
+# Basic Layers
 class InputLayer(PlaneLayer):
 
     def __init__(self, input_size=(128, 128)):
