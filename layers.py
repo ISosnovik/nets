@@ -21,15 +21,6 @@ def crop_xy(array):
     return x_min, y_min, x_max, y_max
 
 
-def poly_patch(points, lw, color):
-    codes = [Path.MOVETO]
-    codes += [Path.LINETO] * (len(points) - 1)
-    codes += [Path.CLOSEPOLY]
-    path = Path(points + [points[0]], codes)
-    patch = patches.PathPatch(path, facecolor=color, lw=lw)
-    return patch
-
-
 def figure2array(fig):
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
@@ -53,21 +44,32 @@ class PlaneLayer(object):
         self.width = 10
         self.height = 150
 
+    def _main_patch(self, points, lw):
+        codes = [Path.MOVETO]
+        codes += [Path.LINETO] * (len(points) - 1)
+        codes += [Path.CLOSEPOLY]
+        path = Path(points + [points[0]], codes)
+        patch = patches.PathPatch(path, facecolor=self.color, lw=lw)
+        return patch
+
     def draw(self, lw=2, figsize=(10, 10)):  
         w = 0.25 * self.height + self.width
         h = 1.6 * self.height
 
-        figures = [
-            [(0, 0), (self.width, 0), (self.width, self.height), (0, self.height)],
-            [(0, self.height), (self.width, self.height), (w, h), (w - self.width, h)],
-            [(self.width, 0), (w, h - self.height), (w, h), (self.width, self.height)]
-        ]
-        patches = [poly_patch(f, lw, self.color) for f in figures]
+        points = [(0, 0), (self.width, 0),  (w, h - self.height), 
+                  (w, h), (w - self.width, h), (0, self.height)]
+        patch = self._main_patch(points, lw)
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111)
-        for patch in patches:
-            ax.add_patch(patch)
+
+        # draw layer
+        ax.add_patch(patch)
+        ax.plot([0.5, self.width], [self.height, self.height], lw=lw, c='black')
+        ax.plot([self.width, self.width], [self.height, 0.5], lw=lw, c='black')
+
+        ax.plot([self.width, w - 0.5], [self.height, h - 1.2], lw=lw, c='black')
+
         ax.set_xlim(- 10, w + 10)
         ax.set_ylim(- 20, 260)
         plt.axes().set_aspect('equal')
