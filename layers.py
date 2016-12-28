@@ -53,7 +53,7 @@ class PlaneLayer(object):
         self.width = 10
         self.height = 150
 
-    def draw(self, lw=4, figsize=(10, 10)):  
+    def draw(self, lw=2, figsize=(10, 10)):  
         w = 0.25 * self.height + self.width
         h = 1.6 * self.height
 
