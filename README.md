@@ -1,5 +1,5 @@
 # Nets
-It is an easy-to-use framework for drawing you favorite network's architecture.
+It is an easy-to-use framework for drawing your favorite network's architecture.
 It is inspired by the juicy schemas from [SegNet](http://mi.eng.cam.ac.uk/projects/segnet/)
 
 ## Usage
