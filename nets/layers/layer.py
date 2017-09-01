@@ -11,7 +11,7 @@ class Layer:
                  description=None, merge='concat'):
         '''
             incoming: incoming Layer or list/tuple of Layers
-            style: dictionary with the defined style attributes: shape, color, etc. 
+            style: dictionary with style attributes: shape, color, etc. 
             input_shape: tuple. shape of the input data. 
                 Could be None, if the incoming layer is provided
             description: the name of the layer. 
@@ -26,15 +26,22 @@ class Layer:
             self.incoming = list(incoming)
             shapes = [l.get_output_shape() for l in self.incoming]
             self.input_shape = merge_input_shapes(shapes, merge=merge)
-        else if input_shape:
+        elif input_shape:
             self.incoming = None
             self.input_shape = input_shape
         else:
             raise ValueError("Neither incoming nor input_shape are provided")
                
-    
     def get_output_shape(self):
         raise NotImplementedError
-            
 
+
+class InputLayer(Layer):
+    
+    def __init__(self, input_shape):
+        super(InputLayer, self).__init__(input_shape=input_shape, 
+                                         style=InputLayerStyle)
+
+    def sup():
+        pass       
 
